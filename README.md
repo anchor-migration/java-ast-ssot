@@ -1,27 +1,58 @@
 # Java AST SSOT
 
-Part of **[Anchor Migration](https://github.com/anchor-migration/migration-hub)** — export **Java** sources and EJB deployment descriptors to SQLite DRG SSOT.
+Part of **[Anchor Migration](https://github.com/anchor-migration/migration-hub)** — export **Java source structure** to SQLite SSOT.
 
-> Program map: [START-HERE.md](https://github.com/anchor-migration/migration-hub/blob/main/docs/START-HERE.md)
+> **Positioning:** [ADR-002 — core vs stack profiles](https://github.com/anchor-migration/migration-hub/blob/main/docs/ADR-002-java-ast-ssot-core-and-profiles.md)
 
-## Naming (language-specific on purpose)
+## What this repo is
 
-This repository is **`java-ast-ssot`**, not a generic `code-ast-ssot`. Anchor Migration treats each legacy **language** as its own extractor repo with the same SSOT pattern (deterministic export → SQLite → crosswalk → verify).
+| | |
+|--|--|
+| **Product** | Generic **Java** AST exporter (types, methods, fields, imports) |
+| **Not** | A Duke's Bank–only or Java EE–only tool |
+| **Duke's Bank** | First **reference demo** + first **stack profile** validation (`javaee-ejb2-jboss`) |
 
-| Repo (current / future) | Scope |
-|-------------------------|--------|
-| **`java-ast-ssot`** | Java sources, EJB/JBoss XML |
-| `db-metadata` | Relational schema (any supported DB) |
-| *(reserved)* e.g. `cobol-ast-ssot` | COBOL → AST SSOT for heterogeneous migration |
+Naming is **`{language}-ast-ssot`**. Future repos (e.g. `cobol-ast-ssot`) cover other languages for heterogeneous migration; linking across languages is a separate layer.
 
-Heterogeneous paths (e.g. COBOL → Java) reuse the **same principles** — separate language SSOTs plus a linking layer — but are **not** implemented here.
+## Architecture (target: Option A)
 
-## Scope (v0.1 POC)
+```
+┌─────────────────────────────────────────┐
+│  java-ast-ssot CORE (always)            │
+│  JavaParser → java_type, method, field… │
+└─────────────────┬───────────────────────┘
+                  │ optional --profile
+        ┌─────────┴─────────┐
+        ▼                   ▼
+ javaee-ejb2-jboss      spring / jpa …
+ (ejb-jar, jbosscmp)    (future profiles)
+```
 
-- **JavaParser** — types, methods, fields, imports (Java 1.4 language level)
-- **XML** — `ejb-jar.xml`, `jbosscmp-jdbc.xml`
-- **Crosswalk edges** — `java_type_to_ejb`, `ejb_to_table`
-- Comments stored separately — **not in v0.1**
+Same pattern as **`db-metadata`**: core export + dialect/profile adapters.
+
+## v0.1 POC (current implementation)
+
+**Documentation reflects target design; code is not refactored yet.**
+
+| Layer | v0.1 behavior |
+|-------|----------------|
+| **Core** | JavaParser on all `.java` under `--source-root` |
+| **Profile** | EJB/JBoss XML parsers **always run** when `ejb-jar.xml` / `jbosscmp-jdbc.xml` are found (implicit `javaee-ejb2-jboss`) |
+
+Step 2 refactor will add explicit `--profile` and allow core-only export without EJB tables.
+
+### Core scope
+
+- JavaParser — types, methods, fields, imports (Java 1.4 language level today)
+- SQLite tables: `java_type`, `java_method`, `java_field`, `java_import`, `source_file`
+
+### Profile: `javaee-ejb2-jboss` (Duke's Bank validated)
+
+- `ejb-jar.xml`, `jbosscmp-jdbc.xml`
+- Tables: `ejb_bean`, `ejb_cmp_field`, `ejb_ref`, `crosswalk_edge`
+- Crosswalk kinds: `java_type_to_ejb`, `ejb_to_table`
+
+Comments → separate layer, not in v0.1.
 
 ## Build
 
@@ -34,13 +65,15 @@ mvn -q package
 
 Fat JAR: `target/java-ast-ssot-0.1.0-SNAPSHOT.jar`
 
-Without local Maven/JDK, build via Docker:
+Docker build:
 
 ```bash
 docker run --rm -v "$PWD:/app" -w /app maven:3.9-eclipse-temurin-17 mvn -q package
 ```
 
-## Duke's Bank example
+## Duke's Bank example (profile validation)
+
+External clone as sibling of `anchor-migration` — see [demo-dukesbank](../demo-dukesbank).
 
 ```bash
 java -jar target/java-ast-ssot-0.1.0-SNAPSHOT.jar export \
@@ -51,19 +84,15 @@ java -jar target/java-ast-ssot-0.1.0-SNAPSHOT.jar info \
   --db metadata/dukesbank-code.db
 ```
 
-Scans all `.java` files under the root plus `ejb-jar.xml` / `jbosscmp-jdbc.xml` anywhere in the tree.
+**Verified (2026-06-27):** 61 Java files, 61 types, 406 methods; with implicit Java EE profile: 8 EJB beans, 8 crosswalk edges.
 
-**Verified (2026-06-27):** 61 Java files, 61 types, 406 methods, 8 EJB beans, 8 crosswalk edges (4 CMP entities linked to tables).
+A plain Spring or Java SE tree should only populate **core** tables after refactor; today EJB tables stay empty if no descriptors are present.
 
 ## SQLite schema
 
 See [`src/main/resources/schema/v1.sql`](src/main/resources/schema/v1.sql).
 
-Core tables: `java_type`, `java_method`, `java_field`, `ejb_bean`, `ejb_cmp_field`, `crosswalk_edge`.
-
-## Design
-
-See [DUKESBANK-DEMO.md](https://github.com/anchor-migration/migration-hub/blob/main/docs/DUKESBANK-DEMO.md) — AST for SSOT, LST deferred to OpenRewrite recipes.
+Schema v1 mixes core + Java EE profile tables — **will split in refactor** (ADR-002 Step 2).
 
 ## License
 
