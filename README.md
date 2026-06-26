@@ -9,90 +9,67 @@ Part of **[Anchor Migration](https://github.com/anchor-migration/migration-hub)*
 | | |
 |--|--|
 | **Product** | Generic **Java** AST exporter (types, methods, fields, imports) |
-| **Not** | A Duke's Bank–only or Java EE–only tool |
-| **Duke's Bank** | First **reference demo** + first **stack profile** validation (`javaee-ejb2-jboss`) |
+| **Profiles** | Optional stack adapters (`javaee-ejb2-jboss`, …) |
+| **Duke's Bank** | Reference demo validating the Java EE profile |
 
-Naming is **`{language}-ast-ssot`**. Future repos (e.g. `cobol-ast-ssot`) cover other languages for heterogeneous migration; linking across languages is a separate layer.
-
-## Architecture (target: Option A)
-
-```
-┌─────────────────────────────────────────┐
-│  java-ast-ssot CORE (always)            │
-│  JavaParser → java_type, method, field… │
-└─────────────────┬───────────────────────┘
-                  │ optional --profile
-        ┌─────────┴─────────┐
-        ▼                   ▼
- javaee-ejb2-jboss      spring / jpa …
- (ejb-jar, jbosscmp)    (future profiles)
-```
-
-Same pattern as **`db-metadata`**: core export + dialect/profile adapters.
-
-## v0.1 POC (current implementation)
-
-**Documentation reflects target design; code is not refactored yet.**
-
-| Layer | v0.1 behavior |
-|-------|----------------|
-| **Core** | JavaParser on all `.java` under `--source-root` |
-| **Profile** | EJB/JBoss XML parsers **always run** when `ejb-jar.xml` / `jbosscmp-jdbc.xml` are found (implicit `javaee-ejb2-jboss`) |
-
-Step 2 refactor will add explicit `--profile` and allow core-only export without EJB tables.
-
-### Core scope
-
-- JavaParser — types, methods, fields, imports (Java 1.4 language level today)
-- SQLite tables: `java_type`, `java_method`, `java_field`, `java_import`, `source_file`
-
-### Profile: `javaee-ejb2-jboss` (Duke's Bank validated)
-
-- `ejb-jar.xml`, `jbosscmp-jdbc.xml`
-- Tables: `ejb_bean`, `ejb_cmp_field`, `ejb_ref`, `crosswalk_edge`
-- Crosswalk kinds: `java_type_to_ejb`, `ejb_to_table`
-
-Comments → separate layer, not in v0.1.
-
-## Build
-
-Requires JDK 17+ and Maven 3.9+.
+## CLI (v0.2)
 
 ```bash
-cd java-ast-ssot
-mvn -q package
-```
+# Core only — any Java project
+java -jar target/java-ast-ssot-0.2.0-SNAPSHOT.jar export \
+  --source-root /path/to/src \
+  --out metadata/java.db
 
-Fat JAR: `target/java-ast-ssot-0.1.0-SNAPSHOT.jar`
-
-Docker build:
-
-```bash
-docker run --rm -v "$PWD:/app" -w /app maven:3.9-eclipse-temurin-17 mvn -q package
-```
-
-## Duke's Bank example (profile validation)
-
-External clone as sibling of `anchor-migration` — see [demo-dukesbank](../demo-dukesbank).
-
-```bash
-java -jar target/java-ast-ssot-0.1.0-SNAPSHOT.jar export \
-  --source-root "C:/github/dukesbank/src/j2eetutorial14/examples/bank" \
+# Java EE EJB 2.x + JBoss CMP (Duke's Bank)
+java -jar target/java-ast-ssot-0.2.0-SNAPSHOT.jar export \
+  --source-root /path/to/bank \
+  --profile javaee-ejb2-jboss \
   --out metadata/dukesbank-code.db
 
-java -jar target/java-ast-ssot-0.1.0-SNAPSHOT.jar info \
-  --db metadata/dukesbank-code.db
+# Optional: auto-enable profiles when descriptor files are found
+java -jar target/java-ast-ssot-0.2.0-SNAPSHOT.jar export \
+  -s /path/to/bank -o metadata/dukesbank-code.db \
+  --auto-detect-profiles
+
+java -jar target/java-ast-ssot-0.2.0-SNAPSHOT.jar profiles
+java -jar target/java-ast-ssot-0.2.0-SNAPSHOT.jar info --db metadata/java.db
 ```
 
-**Verified (2026-06-27):** 61 Java files, 61 types, 406 methods; with implicit Java EE profile: 8 EJB beans, 8 crosswalk edges.
+## Architecture
 
-A plain Spring or Java SE tree should only populate **core** tables after refactor; today EJB tables stay empty if no descriptors are present.
+```
+CORE (always)     JavaParser → java_type, method, field, import
+       +
+PROFILE (opt)     --profile javaee-ejb2-jboss → ejb_*, profile_crosswalk_edge
+```
 
-## SQLite schema
+Schema files:
 
-See [`src/main/resources/schema/v1.sql`](src/main/resources/schema/v1.sql).
+- `src/main/resources/schema/v1-core.sql`
+- `src/main/resources/schema/profile-javaee-ejb2-jboss.sql` (applied only when profile enabled)
 
-Schema v1 mixes core + Java EE profile tables — **will split in refactor** (ADR-002 Step 2).
+## Build & test
+
+```bash
+mvn test package
+```
+
+Docker:
+
+```bash
+docker run --rm -v "$PWD:/app" -w /app maven:3.9-eclipse-temurin-17 mvn -q test package
+```
+
+## Duke's Bank example
+
+External `dukesbank` clone as sibling of `anchor-migration` — see [demo-dukesbank](../demo-dukesbank).
+
+```bash
+java -jar target/java-ast-ssot-0.2.0-SNAPSHOT.jar export \
+  --source-root "C:/github/dukesbank/src/j2eetutorial14/examples/bank" \
+  --profile javaee-ejb2-jboss \
+  --out metadata/dukesbank-code.db
+```
 
 ## License
 

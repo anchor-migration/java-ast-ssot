@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jbosscmp-jdbc>
+  <enterprise-beans>
+    <entity>
+      <ejb-name>AccountBean</ejb-name>
+      <table-name>ACCOUNT</table-name>
+      <cmp-field>
+        <field-name>accountId</field-name>
+        <column-name>ACCOUNT_ID</column-name>
+      </cmp-field>
+    </entity>
+  </enterprise-beans>
+</jbosscmp-jdbc>

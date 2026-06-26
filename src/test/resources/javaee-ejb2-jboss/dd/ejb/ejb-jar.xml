@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ejb-jar>
+  <enterprise-beans>
+    <entity>
+      <ejb-name>AccountBean</ejb-name>
+      <ejb-class>com.example.AccountBean</ejb-class>
+      <persistence-type>Container</persistence-type>
+      <cmp-field>
+        <field-name>accountId</field-name>
+      </cmp-field>
+    </entity>
+  </enterprise-beans>
+</ejb-jar>

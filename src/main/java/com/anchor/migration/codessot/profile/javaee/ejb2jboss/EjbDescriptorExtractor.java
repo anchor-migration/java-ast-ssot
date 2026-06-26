@@ -1,7 +1,8 @@
-package com.anchor.migration.codessot.extract;
+package com.anchor.migration.codessot.profile.javaee.ejb2jboss;
 
 import com.anchor.migration.codessot.StableIds;
 import com.anchor.migration.codessot.model.*;
+import com.anchor.migration.codessot.model.profile.JavaEeEjb2JbossSnapshot;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -14,21 +15,23 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class EjbDescriptorExtractor {
+final class EjbDescriptorExtractor {
 
-    public void parseEjbJar(Path file, Path sourceRoot, ExportSnapshot snapshot) throws Exception {
+    void parseEjbJar(Path file, Path sourceRoot, ExportSnapshot snapshot) throws Exception {
+        JavaEeEjb2JbossSnapshot profile = requireProfile(snapshot);
         String relative = sourceRoot.relativize(file).toString().replace('\\', '/');
         snapshot.sourceFiles.add(new SourceFileRecord(relative, "xml"));
 
         try (InputStream in = Files.newInputStream(file)) {
             Document doc = DocumentBuilderFactory.newDefaultInstance().newDocumentBuilder().parse(in);
             doc.getDocumentElement().normalize();
-            parseSessions(doc, relative, snapshot);
-            parseEntities(doc, relative, snapshot);
+            parseSessions(doc, relative, profile);
+            parseEntities(doc, relative, profile);
         }
     }
 
-    public void parseJbossCmpJdbc(Path file, Path sourceRoot, ExportSnapshot snapshot) throws Exception {
+    void parseJbossCmpJdbc(Path file, Path sourceRoot, ExportSnapshot snapshot) throws Exception {
+        JavaEeEjb2JbossSnapshot profile = requireProfile(snapshot);
         String relative = sourceRoot.relativize(file).toString().replace('\\', '/');
         if (snapshot.sourceFiles.stream().noneMatch(s -> s.relativePath().equals(relative))) {
             snapshot.sourceFiles.add(new SourceFileRecord(relative, "xml"));
@@ -55,17 +58,17 @@ public final class EjbDescriptorExtractor {
                     if (fieldName == null) {
                         continue;
                     }
-                    upsertCmpField(snapshot, ejbName, fieldName, columnName != null ? columnName : fieldName);
+                    upsertCmpField(profile, ejbName, fieldName, columnName != null ? columnName : fieldName);
                 }
             }
 
-            for (int i = 0; i < snapshot.ejbBeans.size(); i++) {
-                EjbBeanRecord bean = snapshot.ejbBeans.get(i);
+            for (int i = 0; i < profile.ejbBeans.size(); i++) {
+                EjbBeanRecord bean = profile.ejbBeans.get(i);
                 String table = ejbToTable.get(bean.ejbName());
                 if (table == null) {
                     continue;
                 }
-                snapshot.ejbBeans.set(
+                profile.ejbBeans.set(
                         i,
                         new EjbBeanRecord(
                                 bean.descriptorFile(),
@@ -75,13 +78,13 @@ public final class EjbDescriptorExtractor {
                                 bean.sessionType(),
                                 bean.persistenceType(),
                                 table));
-                snapshot.crosswalkEdges.add(
+                profile.crosswalkEdges.add(
                         new CrosswalkEdgeRecord(
                                 "ejb_to_table",
                                 StableIds.ejbBean(bean.ejbName()),
-                                StableIds.dbTable("dukesbank", table)));
+                                StableIds.dbTable(JavaEeEjb2JbossProfile.DEFAULT_DB_SCHEMA, table)));
                 if (bean.ejbClass() != null) {
-                    snapshot.crosswalkEdges.add(
+                    profile.crosswalkEdges.add(
                             new CrosswalkEdgeRecord(
                                     "java_type_to_ejb",
                                     bean.ejbClass(),
@@ -91,28 +94,28 @@ public final class EjbDescriptorExtractor {
         }
     }
 
-    private void parseSessions(Document doc, String descriptorFile, ExportSnapshot snapshot) {
+    private void parseSessions(Document doc, String descriptorFile, JavaEeEjb2JbossSnapshot profile) {
         NodeList sessions = doc.getElementsByTagName("session");
         for (int i = 0; i < sessions.getLength(); i++) {
             Element session = (Element) sessions.item(i);
             String ejbName = text(session, "ejb-name");
             String ejbClass = text(session, "ejb-class");
             String sessionType = text(session, "session-type");
-            snapshot.ejbBeans.add(
+            profile.ejbBeans.add(
                     new EjbBeanRecord(
                             descriptorFile, ejbName, ejbClass, "session", sessionType, null, null));
-            parseRefs(session, ejbName, snapshot);
+            parseRefs(session, ejbName, profile);
         }
     }
 
-    private void parseEntities(Document doc, String descriptorFile, ExportSnapshot snapshot) {
+    private void parseEntities(Document doc, String descriptorFile, JavaEeEjb2JbossSnapshot profile) {
         NodeList entities = doc.getElementsByTagName("entity");
         for (int i = 0; i < entities.getLength(); i++) {
             Element entity = (Element) entities.item(i);
             String ejbName = text(entity, "ejb-name");
             String ejbClass = text(entity, "ejb-class");
             String persistenceType = text(entity, "persistence-type");
-            snapshot.ejbBeans.add(
+            profile.ejbBeans.add(
                     new EjbBeanRecord(
                             descriptorFile, ejbName, ejbClass, "entity", null, persistenceType, null));
             NodeList cmpFields = entity.getElementsByTagName("cmp-field");
@@ -120,42 +123,49 @@ public final class EjbDescriptorExtractor {
                 Element cmp = (Element) cmpFields.item(j);
                 String fieldName = text(cmp, "field-name");
                 if (fieldName != null) {
-                    snapshot.ejbCmpFields.add(new EjbCmpFieldRecord(ejbName, fieldName, null));
+                    profile.ejbCmpFields.add(new EjbCmpFieldRecord(ejbName, fieldName, null));
                 }
             }
-            parseRefs(entity, ejbName, snapshot);
+            parseRefs(entity, ejbName, profile);
         }
     }
 
-    private void parseRefs(Element parent, String sourceEjb, ExportSnapshot snapshot) {
-        addRefs(parent, sourceEjb, snapshot, "ejb-local-ref", "ejb-local-ref");
-        addRefs(parent, sourceEjb, snapshot, "ejb-ref", "ejb-ref");
-        addRefs(parent, sourceEjb, snapshot, "resource-ref", "resource-ref");
+    private void parseRefs(Element parent, String sourceEjb, JavaEeEjb2JbossSnapshot profile) {
+        addRefs(parent, sourceEjb, profile, "ejb-local-ref", "ejb-local-ref");
+        addRefs(parent, sourceEjb, profile, "ejb-ref", "ejb-ref");
+        addRefs(parent, sourceEjb, profile, "resource-ref", "resource-ref");
     }
 
     private void addRefs(
-            Element parent, String sourceEjb, ExportSnapshot snapshot, String tag, String kind) {
+            Element parent, String sourceEjb, JavaEeEjb2JbossSnapshot profile, String tag, String kind) {
         NodeList refs = parent.getElementsByTagName(tag);
         for (int i = 0; i < refs.getLength(); i++) {
             Element ref = (Element) refs.item(i);
             String refName =
                     text(ref, tag.equals("resource-ref") ? "res-ref-name" : "ejb-ref-name");
             String refType = text(ref, tag.equals("resource-ref") ? "res-type" : "ejb-ref-type");
-            snapshot.ejbRefs.add(
+            profile.ejbRefs.add(
                     new EjbRefRecord(sourceEjb, refName, refType, text(ref, "ejb-link"), kind));
         }
     }
 
     private void upsertCmpField(
-            ExportSnapshot snapshot, String ejbName, String fieldName, String columnName) {
-        for (int i = 0; i < snapshot.ejbCmpFields.size(); i++) {
-            EjbCmpFieldRecord existing = snapshot.ejbCmpFields.get(i);
+            JavaEeEjb2JbossSnapshot profile, String ejbName, String fieldName, String columnName) {
+        for (int i = 0; i < profile.ejbCmpFields.size(); i++) {
+            EjbCmpFieldRecord existing = profile.ejbCmpFields.get(i);
             if (existing.ejbName().equals(ejbName) && existing.fieldName().equals(fieldName)) {
-                snapshot.ejbCmpFields.set(i, new EjbCmpFieldRecord(ejbName, fieldName, columnName));
+                profile.ejbCmpFields.set(i, new EjbCmpFieldRecord(ejbName, fieldName, columnName));
                 return;
             }
         }
-        snapshot.ejbCmpFields.add(new EjbCmpFieldRecord(ejbName, fieldName, columnName));
+        profile.ejbCmpFields.add(new EjbCmpFieldRecord(ejbName, fieldName, columnName));
+    }
+
+    private JavaEeEjb2JbossSnapshot requireProfile(ExportSnapshot snapshot) {
+        if (snapshot.javaEeEjb2Jboss == null) {
+            throw new IllegalStateException("Profile " + JavaEeEjb2JbossProfile.ID + " is not enabled");
+        }
+        return snapshot.javaEeEjb2Jboss;
     }
 
     private String text(Element parent, String tag) {
