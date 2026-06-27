@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 public final class JavaSourceExtractor {
 
     private final JavaParser parser;
+    private final SourceCommentExtractor commentExtractor = new SourceCommentExtractor();
 
     public JavaSourceExtractor() {
         ParserConfiguration config = new ParserConfiguration();
@@ -32,6 +33,8 @@ public final class JavaSourceExtractor {
         String source = Files.readString(file);
         CompilationUnit cu = parser.parse(source).getResult().orElseThrow(
                 () -> new IllegalStateException("Failed to parse: " + file));
+
+        commentExtractor.extract(cu, relative, snapshot);
 
         String pkg = cu.getPackageDeclaration().map(p -> p.getNameAsString()).orElse("");
 

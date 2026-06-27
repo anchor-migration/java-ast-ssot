@@ -68,3 +68,17 @@ CREATE TABLE IF NOT EXISTS java_import (
 );
 
 CREATE INDEX IF NOT EXISTS idx_java_type_stable ON java_type (export_run_id, stable_id);
+
+CREATE TABLE IF NOT EXISTS source_comment (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    export_run_id   INTEGER NOT NULL REFERENCES export_run(id),
+    source_file_id  INTEGER NOT NULL REFERENCES source_file(id),
+    start_line      INTEGER NOT NULL,
+    end_line        INTEGER NOT NULL,
+    kind            TEXT NOT NULL CHECK (kind IN ('line', 'block', 'javadoc')),
+    text            TEXT NOT NULL,
+    UNIQUE (export_run_id, source_file_id, start_line, end_line, kind)
+);
+
+CREATE INDEX IF NOT EXISTS idx_source_comment_run
+    ON source_comment (export_run_id, source_file_id);

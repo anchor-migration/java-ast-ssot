@@ -40,8 +40,11 @@ public final class ExportCommand implements Callable<Integer> {
         new JavaAstSsotStore().write(out, snapshot);
 
         System.out.printf(
-                "Exported %d Java files, %d types, %d methods%n",
-                snapshot.javaFileCount, snapshot.javaTypes.size(), snapshot.javaMethods.size());
+                "Exported %d Java files, %d types, %d methods, %d comments%n",
+                snapshot.javaFileCount,
+                snapshot.javaTypes.size(),
+                snapshot.javaMethods.size(),
+                snapshot.sourceComments.size());
         if (resolved.isEmpty()) {
             System.out.println("Profiles: (core only)");
         } else {

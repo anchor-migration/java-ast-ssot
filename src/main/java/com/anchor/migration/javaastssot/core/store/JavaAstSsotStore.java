@@ -33,6 +33,7 @@ public final class JavaAstSsotStore {
             insertJavaMethods(conn, exportRunId, typeIds, snapshot);
             insertJavaFields(conn, exportRunId, typeIds, snapshot);
             insertJavaImports(conn, exportRunId, sourceFileIds, snapshot);
+            insertSourceComments(conn, exportRunId, sourceFileIds, snapshot);
             for (String profileId : snapshot.enabledProfileIds) {
                 ProfileRegistry.require(profileId).writeSql(conn, exportRunId, snapshot);
             }
@@ -68,6 +69,7 @@ public final class JavaAstSsotStore {
                     profiles,
                     count(conn, "java_type", runId),
                     count(conn, "java_method", runId),
+                    count(conn, "source_comment", runId),
                     profileStats);
         }
     }
@@ -219,6 +221,30 @@ public final class JavaAstSsotStore {
         }
     }
 
+    private void insertSourceComments(
+            Connection conn, int runId, Map<String, Integer> sourceFileIds, ExportSnapshot snapshot)
+            throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(
+                """
+                INSERT INTO source_comment (export_run_id, source_file_id, start_line, end_line, kind, text)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """)) {
+            for (SourceCommentRecord comment : snapshot.sourceComments) {
+                Integer sourceFileId = sourceFileIds.get(comment.relativePath());
+                if (sourceFileId == null) {
+                    continue;
+                }
+                ps.setInt(1, runId);
+                ps.setInt(2, sourceFileId);
+                ps.setInt(3, comment.startLine());
+                ps.setInt(4, comment.endLine());
+                ps.setString(5, comment.kind());
+                ps.setString(6, comment.text());
+                ps.executeUpdate();
+            }
+        }
+    }
+
     public record ExportSummary(
             int exportRunId,
             String sourceRoot,
@@ -226,5 +252,6 @@ public final class JavaAstSsotStore {
             List<String> profiles,
             int javaTypeCount,
             int javaMethodCount,
+            int sourceCommentCount,
             Map<String, ExportProfile.ProfileStats> profileStats) {}
 }

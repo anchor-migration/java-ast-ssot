@@ -19,6 +19,7 @@ public final class ExportSnapshot {
     public final List<JavaMethodRecord> javaMethods = new ArrayList<>();
     public final List<JavaFieldRecord> javaFields = new ArrayList<>();
     public final List<JavaImportRecord> javaImports = new ArrayList<>();
+    public final List<SourceCommentRecord> sourceComments = new ArrayList<>();
 
     private final Map<String, ProfileSnapshot> profiles = new LinkedHashMap<>();
 

@@ -49,11 +49,15 @@ java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar crosswalk \
 
 | Layer | DDL | Tables |
 |-------|-----|--------|
-| Core | `schema/core/v1.sql` | `export_run`, `java_type`, `java_method`, … |
+| Core | `schema/core/v1.sql` | `export_run`, `java_type`, `java_method`, …, `source_comment` |
 | Profile | `schema/profiles/javaee-ejb2-jboss/v1.sql` | `javaee_ejb2_jboss_*` |
 | Crosswalk (link output) | `schema/crosswalk/v1.sql` | `crosswalk_run`, `code_schema_link`, `crosswalk_issue` |
 
-Profile tables are created **only** when that profile is enabled for an export.
+### Sidecars (core)
+
+| Sidecar | Table | Purpose |
+|---------|-------|---------|
+| Comments | `source_comment` | Raw comment blocks (`line`, `block`, `javadoc`); no v1 semantic links to AST nodes — [ADR-003](https://github.com/anchor-migration/migration-hub/blob/main/docs/ADR-003-ast-sidecar-vs-lst-rewrite-layer.md) |
 
 ## Build
 

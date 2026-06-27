@@ -25,6 +25,7 @@ public final class InfoCommand implements Callable<Integer> {
                 summary.profiles().isEmpty() ? "(core only)" : String.join(", ", summary.profiles()));
         System.out.printf("Java types:     %d%n", summary.javaTypeCount());
         System.out.printf("Java methods:   %d%n", summary.javaMethodCount());
+        System.out.printf("Source comments: %d%n", summary.sourceCommentCount());
         for (var entry : summary.profileStats().entrySet()) {
             ExportProfile.ProfileStats stats = entry.getValue();
             System.out.printf(
