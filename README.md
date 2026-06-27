@@ -2,7 +2,8 @@
 
 Part of **[Anchor Migration](https://github.com/anchor-migration/migration-hub)** — generic **Java source AST** exporter with optional stack profiles.
 
-> [ADR-002 — core vs stack profiles](https://github.com/anchor-migration/migration-hub/blob/main/docs/ADR-002-java-ast-ssot-core-and-profiles.md)
+> [ADR-002 — core vs stack profiles](https://github.com/anchor-migration/migration-hub/blob/main/docs/ADR-002-java-ast-ssot-core-and-profiles.md)  
+> [ADR-004 — crosswalk contract](https://github.com/anchor-migration/migration-hub/blob/main/docs/ADR-004-crosswalk-contract-mapping-roles-and-edge-kinds.md)
 
 **Breaking release:** `1.0.0-SNAPSHOT` — no compatibility with v0.x SQLite files or package names.
 
@@ -16,7 +17,8 @@ com.anchor.migration.javaastssot
 │   └── store/            # SQLite core schema + writer
 ├── profile/              # Optional stack adapters
 │   └── javaee/ejb2jboss/ # Profile javaee-ejb2-jboss
-└── cli/                  # export, info, profiles
+├── crosswalk/            # Link code SSOT ↔ schema SSOT (ADR-004)
+└── cli/                  # export, crosswalk, info, profiles
 ```
 
 ## CLI
@@ -34,6 +36,13 @@ java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar export \
 
 java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar profiles
 java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar info -d metadata/java.db
+
+# Link code SSOT to schema SSOT (after db-metadata export)
+java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar crosswalk \
+  --code-db metadata/dukesbank-code.db \
+  --schema-db metadata/dukesbank.db \
+  --db-schema dukesbank \
+  -o metadata/dukesbank-linked.db
 ```
 
 ## Schema
@@ -42,6 +51,7 @@ java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar info -d metadata/java.db
 |-------|-----|--------|
 | Core | `schema/core/v1.sql` | `export_run`, `java_type`, `java_method`, … |
 | Profile | `schema/profiles/javaee-ejb2-jboss/v1.sql` | `javaee_ejb2_jboss_*` |
+| Crosswalk (link output) | `schema/crosswalk/v1.sql` | `crosswalk_run`, `code_schema_link`, `crosswalk_issue` |
 
 Profile tables are created **only** when that profile is enabled for an export.
 
@@ -50,6 +60,25 @@ Profile tables are created **only** when that profile is enabled for an export.
 ```bash
 mvn test package
 ```
+
+Without local Maven (Docker):
+
+```bash
+docker run --rm -v "$PWD:/app" -w /app maven:3.9-eclipse-temurin-17 mvn -B test package
+```
+
+Duke's Bank end-to-end (MySQL in `demo-dukesbank` Docker Compose, JDBC on `localhost:3306`):
+
+```bash
+# 1. Schema SSOT (host Python db-metadata → Docker MySQL)
+db-migration export --url "mysql+pymysql://dukesbank:dukesbank@localhost:3306/dukesbank" \
+  --out metadata/dukesbank.db
+
+# 2–4. Build + export + crosswalk (Docker Maven; mount bank source separately)
+# See demo-dukesbank/README.md for full commands and Windows paths.
+```
+
+On Windows PowerShell, use `C:/github/anchor-migration/java-ast-ssot` as the mount path instead of `$PWD` if needed.
 
 ## License
 

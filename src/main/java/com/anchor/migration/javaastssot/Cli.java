@@ -1,5 +1,6 @@
 package com.anchor.migration.javaastssot;
 
+import com.anchor.migration.javaastssot.cli.CrosswalkCommand;
 import com.anchor.migration.javaastssot.cli.ExportCommand;
 import com.anchor.migration.javaastssot.cli.InfoCommand;
 import com.anchor.migration.javaastssot.cli.ProfilesCommand;
@@ -11,7 +12,7 @@ import java.util.concurrent.Callable;
 @Command(
         name = "java-ast-ssot",
         mixinStandardHelpOptions = true,
-        subcommands = {ExportCommand.class, InfoCommand.class, ProfilesCommand.class})
+        subcommands = {ExportCommand.class, CrosswalkCommand.class, InfoCommand.class, ProfilesCommand.class})
 public final class Cli implements Callable<Integer> {
 
     @Override
