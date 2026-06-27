@@ -1,5 +1,7 @@
 package com.anchor.migration.javaastssot.crosswalk.model;
 
+import com.anchor.migration.javaastssot.crosswalk.alignment.LinkAlignment;
+
 public record CodeSchemaLinkRecord(
         String edgeKind,
         String sourceStableId,
@@ -8,4 +10,5 @@ public record CodeSchemaLinkRecord(
         String profileId,
         String bindingSource,
         String evidenceRef,
-        String confidence) {}
+        String confidence,
+        LinkAlignment alignment) {}

@@ -13,6 +13,7 @@ public final class SchemaSsotReader {
 
     private final Map<String, String> tableStableIdsByKey = new HashMap<>();
     private final Map<String, String> columnStableIdsByKey = new HashMap<>();
+    private final Map<String, SchemaColumnInfo> columnInfoByKey = new HashMap<>();
 
     public static SchemaSsotReader load(Connection conn, int exportRunId) throws SQLException {
         SchemaSsotReader reader = new SchemaSsotReader();
@@ -26,7 +27,11 @@ public final class SchemaSsotReader {
     }
 
     public Optional<String> resolveColumnStableId(String dbSchema, String tableName, String columnName) {
-        return Optional.ofNullable(columnStableIdsByKey.get(columnKey(dbSchema, tableName, columnName)));
+        return resolveColumnInfo(dbSchema, tableName, columnName).map(SchemaColumnInfo::stableId);
+    }
+
+    public Optional<SchemaColumnInfo> resolveColumnInfo(String dbSchema, String tableName, String columnName) {
+        return Optional.ofNullable(columnInfoByKey.get(columnKey(dbSchema, tableName, columnName)));
     }
 
     private void loadTables(Connection conn, int exportRunId) throws SQLException {
@@ -51,7 +56,7 @@ public final class SchemaSsotReader {
     private void loadColumns(Connection conn, int exportRunId) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
                 """
-                SELECT c.stable_id, s.name AS schema_name, t.name AS table_name, c.name AS column_name
+                SELECT c.stable_id, c.data_type, s.name AS schema_name, t.name AS table_name, c.name AS column_name
                 FROM db_column c
                 JOIN db_table t ON c.table_id = t.id
                 JOIN db_schema s ON t.schema_id = s.id
@@ -65,6 +70,12 @@ public final class SchemaSsotReader {
                     String columnName = rs.getString("column_name");
                     columnStableIdsByKey.put(
                             columnKey(schemaName, tableName, columnName), rs.getString("stable_id"));
+                    columnInfoByKey.put(
+                            columnKey(schemaName, tableName, columnName),
+                            new SchemaColumnInfo(
+                                    rs.getString("stable_id"),
+                                    rs.getString("data_type"),
+                                    columnName));
                 }
             }
         }

@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS meta_crosswalk_version (
     version     INTEGER PRIMARY KEY,
     applied_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
-INSERT OR IGNORE INTO meta_crosswalk_version (version) VALUES (1);
+INSERT OR IGNORE INTO meta_crosswalk_version (version) VALUES (2);
 
 CREATE TABLE IF NOT EXISTS crosswalk_run (
     id                      INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,6 +28,14 @@ CREATE TABLE IF NOT EXISTS code_schema_link (
     binding_source          TEXT NOT NULL,
     evidence_ref            TEXT,
     confidence              TEXT NOT NULL CHECK (confidence IN ('authoritative', 'inferred')),
+    name_drift_class        TEXT NOT NULL DEFAULT 'none',
+    type_relation_forward   TEXT NOT NULL DEFAULT 'unknown',
+    type_relation_backward  TEXT NOT NULL DEFAULT 'unknown',
+    color_forward           TEXT NOT NULL DEFAULT 'green',
+    color_backward          TEXT NOT NULL DEFAULT 'green',
+    round_trip_class        TEXT NOT NULL DEFAULT 'safe',
+    normalized_source       TEXT,
+    normalized_target       TEXT,
     UNIQUE (crosswalk_run_id, edge_kind, source_stable_id, target_stable_id, profile_id)
 );
 

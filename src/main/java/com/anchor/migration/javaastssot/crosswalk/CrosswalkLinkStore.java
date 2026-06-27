@@ -1,6 +1,7 @@
 package com.anchor.migration.javaastssot.crosswalk;
 
 import com.anchor.migration.javaastssot.Version;
+import com.anchor.migration.javaastssot.crosswalk.alignment.LinkAlignment;
 import com.anchor.migration.javaastssot.crosswalk.model.CodeSchemaLinkRecord;
 import com.anchor.migration.javaastssot.crosswalk.model.CrosswalkIssue;
 
@@ -150,10 +151,14 @@ public final class CrosswalkLinkStore {
                 """
                 INSERT OR IGNORE INTO code_schema_link
                     (crosswalk_run_id, edge_kind, source_stable_id, target_stable_id,
-                     mapping_role, profile_id, binding_source, evidence_ref, confidence)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     mapping_role, profile_id, binding_source, evidence_ref, confidence,
+                     name_drift_class, type_relation_forward, type_relation_backward,
+                     color_forward, color_backward, round_trip_class,
+                     normalized_source, normalized_target)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """)) {
             for (CodeSchemaLinkRecord link : links) {
+                LinkAlignment alignment = link.alignment();
                 ps.setInt(1, crosswalkRunId);
                 ps.setString(2, link.edgeKind());
                 ps.setString(3, link.sourceStableId());
@@ -163,6 +168,14 @@ public final class CrosswalkLinkStore {
                 ps.setString(7, link.bindingSource());
                 ps.setString(8, link.evidenceRef());
                 ps.setString(9, link.confidence());
+                ps.setString(10, alignment.nameDriftClass());
+                ps.setString(11, alignment.typeRelationForward());
+                ps.setString(12, alignment.typeRelationBackward());
+                ps.setString(13, alignment.colorForward());
+                ps.setString(14, alignment.colorBackward());
+                ps.setString(15, alignment.roundTripClass());
+                ps.setString(16, alignment.normalizedSource());
+                ps.setString(17, alignment.normalizedTarget());
                 ps.executeUpdate();
             }
         }

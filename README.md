@@ -38,6 +38,7 @@ java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar profiles
 java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar info -d metadata/java.db
 
 # Link code SSOT to schema SSOT (after db-metadata export)
+# Alignment (ADR-005): bidirectional color_forward / color_backward on each link
 java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar crosswalk \
   --code-db metadata/dukesbank-code.db \
   --schema-db metadata/dukesbank.db \
@@ -51,7 +52,7 @@ java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar crosswalk \
 |-------|-----|--------|
 | Core | `schema/core/v1.sql` | `export_run`, `java_type`, `java_method`, …, `source_comment` |
 | Profile | `schema/profiles/javaee-ejb2-jboss/v1.sql` | `javaee_ejb2_jboss_*` |
-| Crosswalk (link output) | `schema/crosswalk/v1.sql` | `crosswalk_run`, `code_schema_link`, `crosswalk_issue` |
+| Crosswalk (link output) | `schema/crosswalk/v1.sql` | `crosswalk_run`, `code_schema_link` (+ alignment columns), `crosswalk_issue` |
 
 ### Sidecars (core)
 

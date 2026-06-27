@@ -1,12 +1,15 @@
 package com.anchor.migration.javaastssot.crosswalk.contributor;
 
 import com.anchor.migration.javaastssot.core.StableIds;
+import com.anchor.migration.javaastssot.crosswalk.CrosswalkContext;
 import com.anchor.migration.javaastssot.crosswalk.EdgeKinds;
 import com.anchor.migration.javaastssot.crosswalk.MappingRoles;
-import com.anchor.migration.javaastssot.crosswalk.CrosswalkContext;
+import com.anchor.migration.javaastssot.crosswalk.alignment.AlignmentEvaluator;
+import com.anchor.migration.javaastssot.crosswalk.alignment.LinkAlignment;
 import com.anchor.migration.javaastssot.crosswalk.model.CodeSchemaLinkRecord;
 import com.anchor.migration.javaastssot.crosswalk.model.CrosswalkContribution;
 import com.anchor.migration.javaastssot.crosswalk.model.CrosswalkIssue;
+import com.anchor.migration.javaastssot.crosswalk.schema.SchemaColumnInfo;
 import com.anchor.migration.javaastssot.profile.javaee.ejb2jboss.JavaEeEjb2JbossIds;
 import com.anchor.migration.javaastssot.profile.javaee.ejb2jboss.JavaEeEjb2JbossProfile;
 
@@ -15,8 +18,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -32,6 +37,7 @@ public final class JavaEeEjb2JbossCrosswalkContributor implements CrosswalkContr
         List<CodeSchemaLinkRecord> links = new ArrayList<>();
         List<CrosswalkIssue> issues = new ArrayList<>();
         Set<String> javaTypes = loadJavaTypeIds(context.codeConn(), context.codeExportRunId());
+        Map<String, String> javaFieldTypes = loadJavaFieldTypes(context.codeConn(), context.codeExportRunId());
 
         try (PreparedStatement ps = context.codeConn().prepareStatement(
                 """
@@ -64,7 +70,7 @@ public final class JavaEeEjb2JbossCrosswalkContributor implements CrosswalkContr
             ps.setInt(1, context.codeExportRunId());
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    contributeCmpField(context, rs, links, issues);
+                    contributeCmpField(context, rs, javaFieldTypes, links, issues);
                 }
             }
         }
@@ -84,6 +90,7 @@ public final class JavaEeEjb2JbossCrosswalkContributor implements CrosswalkContr
         String tableName = rs.getString("table_name");
         String descriptorFile = rs.getString("descriptor_file");
         String dbSchema = context.dbSchema();
+        String simpleClassName = simpleNameFromTypeId(ejbClass);
 
         if (!javaTypes.contains(ejbClass)) {
             issues.add(
@@ -94,6 +101,7 @@ public final class JavaEeEjb2JbossCrosswalkContributor implements CrosswalkContr
                             ejbClass));
         }
 
+        LinkAlignment bridgeAlignment = AlignmentEvaluator.evaluateNames(simpleClassName, ejbName, true);
         links.add(
                 new CodeSchemaLinkRecord(
                         EdgeKinds.STACK_BRIDGE,
@@ -103,7 +111,8 @@ public final class JavaEeEjb2JbossCrosswalkContributor implements CrosswalkContr
                         profileId(),
                         "ejb_jar_xml",
                         descriptorFile,
-                        "authoritative"));
+                        "authoritative",
+                        bridgeAlignment));
 
         Optional<String> tableStableId = context.schemaReader().resolveTableStableId(dbSchema, tableName);
         if (tableStableId.isEmpty()) {
@@ -116,6 +125,7 @@ public final class JavaEeEjb2JbossCrosswalkContributor implements CrosswalkContr
             return;
         }
 
+        LinkAlignment tableAlignment = AlignmentEvaluator.evaluateNames(simpleClassName, tableName, true);
         links.add(
                 new CodeSchemaLinkRecord(
                         EdgeKinds.TYPE_MAPS_TO_TABLE,
@@ -125,12 +135,14 @@ public final class JavaEeEjb2JbossCrosswalkContributor implements CrosswalkContr
                         profileId(),
                         "jbosscmp_xml",
                         "jbosscmp-jdbc.xml",
-                        "authoritative"));
+                        "authoritative",
+                        tableAlignment));
     }
 
     private void contributeCmpField(
             CrosswalkContext context,
             ResultSet rs,
+            Map<String, String> javaFieldTypes,
             List<CodeSchemaLinkRecord> links,
             List<CrosswalkIssue> issues)
             throws SQLException {
@@ -143,9 +155,9 @@ public final class JavaEeEjb2JbossCrosswalkContributor implements CrosswalkContr
         }
 
         String fieldStableId = StableIds.javaField(ejbClass, fieldName);
-        Optional<String> columnStableId =
-                context.schemaReader().resolveColumnStableId(context.dbSchema(), tableName, columnName);
-        if (columnStableId.isEmpty()) {
+        Optional<SchemaColumnInfo> columnInfo =
+                context.schemaReader().resolveColumnInfo(context.dbSchema(), tableName, columnName);
+        if (columnInfo.isEmpty()) {
             issues.add(
                     new CrosswalkIssue(
                             "error",
@@ -163,16 +175,27 @@ public final class JavaEeEjb2JbossCrosswalkContributor implements CrosswalkContr
             return;
         }
 
+        String javaFieldType = javaFieldTypes.get(fieldStableId);
+        LinkAlignment alignment =
+                AlignmentEvaluator.evaluateFieldMapping(
+                        fieldName, columnInfo.get().columnName(), javaFieldType, columnInfo.get().dataType());
+
         links.add(
                 new CodeSchemaLinkRecord(
                         EdgeKinds.FIELD_MAPS_TO_COLUMN,
                         fieldStableId,
-                        columnStableId.get(),
+                        columnInfo.get().stableId(),
                         MappingRoles.PERSISTENT_ENTITY,
                         profileId(),
                         "jbosscmp_xml",
                         "jbosscmp-jdbc.xml",
-                        "authoritative"));
+                        "authoritative",
+                        alignment));
+    }
+
+    private static String simpleNameFromTypeId(String typeId) {
+        int dot = typeId.lastIndexOf('.');
+        return dot >= 0 ? typeId.substring(dot + 1) : typeId;
     }
 
     private Set<String> loadJavaTypeIds(Connection conn, int exportRunId) throws SQLException {
@@ -187,5 +210,19 @@ public final class JavaEeEjb2JbossCrosswalkContributor implements CrosswalkContr
             }
         }
         return ids;
+    }
+
+    private Map<String, String> loadJavaFieldTypes(Connection conn, int exportRunId) throws SQLException {
+        Map<String, String> types = new HashMap<>();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT stable_id, field_type FROM java_field WHERE export_run_id = ?")) {
+            ps.setInt(1, exportRunId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    types.put(rs.getString(1), rs.getString(2));
+                }
+            }
+        }
+        return types;
     }
 }

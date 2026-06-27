@@ -6,6 +6,9 @@ import com.anchor.migration.javaastssot.crosswalk.CrosswalkLinkEngine;
 import com.anchor.migration.javaastssot.crosswalk.CrosswalkLinkStore;
 import com.anchor.migration.javaastssot.crosswalk.EdgeKinds;
 import com.anchor.migration.javaastssot.crosswalk.MappingRoles;
+import com.anchor.migration.javaastssot.crosswalk.alignment.EdgeColors;
+import com.anchor.migration.javaastssot.crosswalk.alignment.NameDriftClasses;
+import com.anchor.migration.javaastssot.crosswalk.alignment.RoundTripClasses;
 import com.anchor.migration.javaastssot.crosswalk.model.CrosswalkLinkResult;
 import com.anchor.migration.javaastssot.profile.javaee.ejb2jboss.JavaEeEjb2JbossProfile;
 import org.junit.jupiter.api.Test;
@@ -69,7 +72,39 @@ class CrosswalkLinkTest {
                     "com.example.AccountBean#accountId",
                     DB_SCHEMA + ".ACCOUNT.ACCOUNT_ID",
                     MappingRoles.PERSISTENT_ENTITY);
+            assertAlignment(
+                    st,
+                    EdgeKinds.FIELD_MAPS_TO_COLUMN,
+                    "com.example.AccountBean#accountId",
+                    NameDriftClasses.NONE,
+                    EdgeColors.GREEN,
+                    EdgeColors.GREEN,
+                    RoundTripClasses.SAFE);
         }
+    }
+
+    private static void assertAlignment(
+            Statement st,
+            String edgeKind,
+            String sourceId,
+            String nameDrift,
+            String colorForward,
+            String colorBackward,
+            String roundTrip)
+            throws Exception {
+        ResultSet rs =
+                st.executeQuery(
+                        """
+                        SELECT name_drift_class, color_forward, color_backward, round_trip_class
+                        FROM code_schema_link
+                        WHERE edge_kind = '%s' AND source_stable_id = '%s'
+                        """
+                                .formatted(edgeKind, sourceId));
+        assertTrue(rs.next(), "missing alignment for " + sourceId);
+        assertEquals(nameDrift, rs.getString(1));
+        assertEquals(colorForward, rs.getString(2));
+        assertEquals(colorBackward, rs.getString(3));
+        assertEquals(roundTrip, rs.getString(4));
     }
 
     @Test
