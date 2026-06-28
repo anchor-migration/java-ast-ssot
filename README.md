@@ -18,7 +18,8 @@ com.anchor.migration.javaastssot
 ├── profile/              # Optional stack adapters
 │   └── javaee/ejb2jboss/ # Profile javaee-ejb2-jboss
 ├── crosswalk/            # Link code SSOT ↔ schema SSOT (ADR-004)
-└── cli/                  # export, crosswalk, info, profiles
+├── listusage/            # On-demand list classifier (ADR-008 M2)
+└── cli/                  # export, classify-lists, crosswalk, info, profiles
 ```
 
 ## CLI
@@ -44,7 +45,15 @@ java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar crosswalk \
   --schema-db metadata/dukesbank.db \
   --db-schema dukesbank \
   -o metadata/dukesbank-linked.db
+
+# On-demand list usage classifier (ADR-008 M2 — no cache)
+java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar classify-lists \
+  -s /path/to/bank/src \
+  --paths com/sun/ebank/ejb/account/AccountControllerBean.java \
+  -o /tmp/list-usage.json
 ```
+
+See [docs/list-usage-classifier.md](docs/list-usage-classifier.md).
 
 ## Schema
 
@@ -56,9 +65,15 @@ java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar crosswalk \
 
 ### Sidecars (core)
 
-| Sidecar | Table | Purpose |
-|---------|-------|---------|
+| Sidecar | Table / tool | Purpose |
+|---------|--------------|---------|
 | Comments | `source_comment` | Raw comment blocks (`line`, `block`, `javadoc`); no v1 semantic links to AST nodes — [ADR-003](https://github.com/anchor-migration/migration-hub/blob/main/docs/ADR-003-ast-sidecar-vs-lst-rewrite-layer.md) |
+
+### On-demand analysis (not core SQLite)
+
+| Tool | Output | Purpose |
+|------|--------|---------|
+| `classify-lists` | Ephemeral JSON | ADR-008 M2 — raw collection `homogeneous` / `tuple` / `unknown`; see [docs/list-usage-classifier.md](docs/list-usage-classifier.md) |
 
 ## Build
 
