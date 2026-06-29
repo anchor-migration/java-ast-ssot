@@ -5,6 +5,8 @@ Part of **[Anchor Migration](https://github.com/anchor-migration/migration-hub)*
 > [ADR-002 — core vs stack profiles](https://github.com/anchor-migration/migration-hub/blob/main/docs/ADR-002-java-ast-ssot-core-and-profiles.md)  
 > [ADR-004 — crosswalk contract](https://github.com/anchor-migration/migration-hub/blob/main/docs/ADR-004-crosswalk-contract-mapping-roles-and-edge-kinds.md)
 
+**Related (horizontal):** [anchor-stubborn](https://github.com/anchor-migration/anchor-stubborn) compiles SCIP symbol graphs into token-bounded LLM stubs. It complements — does not replace — this exporter for crosswalk, Explorer, or rewrite. See [ADR-010](https://github.com/anchor-migration/migration-hub/blob/main/docs/ADR-010-anchor-stubborn-integration.md).
+
 **Breaking release:** `1.0.0-SNAPSHOT` — no compatibility with v0.x SQLite files or package names.
 
 ## Package layout
