@@ -2,12 +2,14 @@ package com.anchor.migration.javaastssot.profile;
 
 import com.anchor.migration.javaastssot.profile.javaee.ejb2jboss.JavaEeEjb2JbossProfile;
 import com.anchor.migration.javaastssot.profile.jpa.JpaProfile;
+import com.anchor.migration.javaastssot.profile.mybatis.MyBatisProfile;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -15,10 +17,13 @@ import java.util.Set;
 
 public final class ProfileRegistry {
 
-    private static final Map<String, ExportProfile> PROFILES =
-            Map.of(
-                    JavaEeEjb2JbossProfile.ID, new JavaEeEjb2JbossProfile(),
-                    JpaProfile.ID, new JpaProfile());
+    private static final Map<String, ExportProfile> PROFILES = new LinkedHashMap<>();
+
+    static {
+        PROFILES.put(JavaEeEjb2JbossProfile.ID, new JavaEeEjb2JbossProfile());
+        PROFILES.put(JpaProfile.ID, new JpaProfile());
+        PROFILES.put(MyBatisProfile.ID, new MyBatisProfile());
+    }
 
     private ProfileRegistry() {}
 

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.AccountMapper">
+    <resultMap id="accountMap" type="com.example.Account">
+        <id property="accountId" column="ACCOUNT_ID"/>
+    </resultMap>
+
+    <select id="findById" resultMap="accountMap">
+        SELECT ACCOUNT_ID FROM ACCOUNT WHERE ACCOUNT_ID = #{accountId}
+    </select>
+</mapper>

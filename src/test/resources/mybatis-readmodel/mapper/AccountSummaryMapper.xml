@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.AccountSummaryMapper">
+    <resultMap id="summaryMap" type="com.example.AccountSummary">
+        <result property="accountId" column="ACCOUNT_ID"/>
+        <result property="customerName" column="CUSTOMER_NAME"/>
+    </resultMap>
+
+    <select id="listSummaries" resultMap="summaryMap">
+        SELECT a.ACCOUNT_ID, c.CUSTOMER_NAME
+        FROM ACCOUNT a
+        JOIN CUSTOMER c ON a.CUSTOMER_ID = c.CUSTOMER_ID
+    </select>
+</mapper>
