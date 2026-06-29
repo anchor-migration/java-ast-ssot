@@ -25,7 +25,8 @@ Scope: **intra-procedural** only. Cross-method flow → not tracked (future: mar
 
 ## Consumers
 
-- **L2 recipes** (future): read JSON report; `failOnTupleList`
-- **Human review**: run before enabling homogeneous generic typing
+- **L2** — `HomogeneousRawListTyping` reads homogeneous sites; `failOnTupleList` skips tuple sites ([homogeneous-raw-list-l2.md](https://github.com/anchor-migration/rewrite-recipes/blob/main/docs/homogeneous-raw-list-l2.md))
+- **L3** — `TupleListToResultClass` targets tuple sites; proposal-first workflow ([tuple-list-l3.md](https://github.com/anchor-migration/rewrite-recipes/blob/main/docs/tuple-list-l3.md))
+- **Human review** — run before enabling L2/L3 on broad codebases
 
-See [ADR-008 M2](https://github.com/anchor-migration/migration-hub/blob/main/docs/ADR-008-java-language-modernization-and-tuple-lists.md).
+See [ADR-008](https://github.com/anchor-migration/migration-hub/blob/main/docs/ADR-008-java-language-modernization-and-tuple-lists.md).

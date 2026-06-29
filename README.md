@@ -73,7 +73,7 @@ See [docs/list-usage-classifier.md](docs/list-usage-classifier.md).
 
 | Tool | Output | Purpose |
 |------|--------|---------|
-| `classify-lists` | Ephemeral JSON | ADR-008 M2 — raw collection `homogeneous` / `tuple` / `unknown`; see [docs/list-usage-classifier.md](docs/list-usage-classifier.md) |
+| `classify-lists` | Ephemeral JSON | ADR-008 M2 — raw collection `homogeneous` / `tuple` / `unknown`; consumed by `rewrite-recipes` L2/L3 — [docs/list-usage-classifier.md](docs/list-usage-classifier.md) |
 
 ## Build
 
