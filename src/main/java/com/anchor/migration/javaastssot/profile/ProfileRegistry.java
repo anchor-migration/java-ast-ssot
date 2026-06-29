@@ -1,6 +1,7 @@
 package com.anchor.migration.javaastssot.profile;
 
 import com.anchor.migration.javaastssot.profile.javaee.ejb2jboss.JavaEeEjb2JbossProfile;
+import com.anchor.migration.javaastssot.profile.jpa.JpaProfile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,7 +16,9 @@ import java.util.Set;
 public final class ProfileRegistry {
 
     private static final Map<String, ExportProfile> PROFILES =
-            Map.of(JavaEeEjb2JbossProfile.ID, new JavaEeEjb2JbossProfile());
+            Map.of(
+                    JavaEeEjb2JbossProfile.ID, new JavaEeEjb2JbossProfile(),
+                    JpaProfile.ID, new JpaProfile());
 
     private ProfileRegistry() {}
 

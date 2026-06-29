@@ -1,6 +1,7 @@
 package com.anchor.migration.javaastssot.crosswalk.contributor;
 
 import com.anchor.migration.javaastssot.crosswalk.contributor.JavaEeEjb2JbossCrosswalkContributor;
+import com.anchor.migration.javaastssot.crosswalk.contributor.JpaCrosswalkContributor;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -12,6 +13,7 @@ public final class CrosswalkContributorRegistry {
 
     static {
         register(new JavaEeEjb2JbossCrosswalkContributor());
+        register(new JpaCrosswalkContributor());
     }
 
     private CrosswalkContributorRegistry() {}

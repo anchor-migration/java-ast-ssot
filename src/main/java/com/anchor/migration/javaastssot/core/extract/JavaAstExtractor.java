@@ -37,6 +37,12 @@ public final class JavaAstExtractor {
         try {
             if (name.endsWith(".java")) {
                 javaExtractor.parseFile(file, sourceRoot, snapshot);
+                for (String profileId : profileIds) {
+                    ExportProfile profile = ProfileRegistry.require(profileId);
+                    if (profile.handlesFileName(name)) {
+                        profile.processFile(file, sourceRoot, snapshot);
+                    }
+                }
                 return;
             }
             for (String profileId : profileIds) {

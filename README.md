@@ -16,7 +16,8 @@ com.anchor.migration.javaastssot
 │   ├── model/            # java_type, method, field, …
 │   └── store/            # SQLite core schema + writer
 ├── profile/              # Optional stack adapters
-│   └── javaee/ejb2jboss/ # Profile javaee-ejb2-jboss
+│   ├── javaee/ejb2jboss/ # Profile javaee-ejb2-jboss
+│   └── jpa/              # Profile jpa (@Entity / @Table / @Column)
 ├── crosswalk/            # Link code SSOT ↔ schema SSOT (ADR-004)
 ├── listusage/            # On-demand list classifier (ADR-008 M2)
 └── cli/                  # export, classify-lists, crosswalk, info, profiles
@@ -34,6 +35,12 @@ java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar export \
   -s /path/to/bank \
   --profile javaee-ejb2-jboss \
   -o metadata/dukesbank-code.db
+
+# JPA entities (post CMP→JPA rewrite)
+java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar export \
+  -s /path/to/bank \
+  --profile jpa \
+  -o metadata/dukesbank-jpa-code.db
 
 java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar profiles
 java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar info -d metadata/java.db
@@ -61,6 +68,7 @@ See [docs/list-usage-classifier.md](docs/list-usage-classifier.md).
 |-------|-----|--------|
 | Core | `schema/core/v1.sql` | `export_run`, `java_type`, `java_method`, …, `source_comment` |
 | Profile | `schema/profiles/javaee-ejb2-jboss/v1.sql` | `javaee_ejb2_jboss_*` |
+| Profile | `schema/profiles/jpa/v1.sql` | `jpa_entity`, `jpa_field` |
 | Crosswalk (link output) | `schema/crosswalk/v1.sql` | `crosswalk_run`, `code_schema_link` (+ alignment columns), `crosswalk_issue` |
 
 ### Sidecars (core)
